@@ -259,3 +259,272 @@ const SlateEditorDemo = () => {
 };
 
 export default SlateEditorDemo;
+
+
+
+
+//// v2
+
+import React, { useState, useCallback, useMemo } from 'react';
+import { createEditor } from 'slate';
+import { Slate, Editable, withReact } from 'slate-react';
+import {
+  FormControl,
+  InputLabel,
+  FormHelperText,
+  Box,
+  useTheme
+} from '@mui/material';
+
+const MUISlateEditor = ({ 
+  label = "Rich Text Editor",
+  helperText = "",
+  error = false,
+  placeholder = "Enter text...",
+  disabled = false,
+  required = false,
+  value,
+  onChange,
+  fullWidth = true,
+  margin = "normal",
+  size = "medium",
+  ...props 
+}) => {
+  const theme = useTheme();
+  const [focused, setFocused] = useState(false);
+  const [internalValue, setInternalValue] = useState([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    },
+  ]);
+
+  const editor = useMemo(() => withReact(createEditor()), []);
+  
+  const currentValue = value || internalValue;
+  const hasContent = currentValue.some(node => 
+    node.children.some(child => child.text && child.text.trim().length > 0)
+  );
+
+  const handleChange = useCallback((newValue) => {
+    if (onChange) {
+      onChange(newValue);
+    } else {
+      setInternalValue(newValue);
+    }
+  }, [onChange]);
+
+  const handleFocus = useCallback(() => {
+    if (!disabled) setFocused(true);
+  }, [disabled]);
+
+  const handleBlur = useCallback(() => {
+    setFocused(false);
+  }, []);
+
+  // Calculate padding based on size
+  const getPadding = () => {
+    if (size === 'small') return '8.5px 14px';
+    return '16.5px 14px';
+  };
+
+  // Calculate min height based on size
+  const getMinHeight = () => {
+    if (size === 'small') return '40px';
+    return '56px';
+  };
+
+  return (
+    <FormControl
+      variant="outlined"
+      fullWidth={fullWidth}
+      error={error}
+      disabled={disabled}
+      margin={margin}
+      required={required}
+      focused={focused}
+    >
+      <InputLabel
+        shrink={focused || hasContent}
+        sx={{
+          '&.MuiInputLabel-root': {
+            transform: (focused || hasContent) 
+              ? 'translate(14px, -9px) scale(0.75)' 
+              : `translate(14px, ${size === 'small' ? '12px' : '16px'}) scale(1)`,
+          }
+        }}
+      >
+        {label}
+      </InputLabel>
+      
+      <Box
+        sx={{
+          position: 'relative',
+          borderRadius: 1,
+          border: (theme) => {
+            if (disabled) return `1px solid ${theme.palette.action.disabled}`;
+            if (error) return `2px solid ${theme.palette.error.main}`;
+            if (focused) return `2px solid ${theme.palette.primary.main}`;
+            return `1px solid ${theme.palette.divider}`;
+          },
+          backgroundColor: disabled 
+            ? theme.palette.action.disabledBackground 
+            : theme.palette.background.paper,
+          minHeight: getMinHeight(),
+          cursor: disabled ? 'not-allowed' : 'text',
+          transition: theme.transitions.create([
+            'border-color',
+            'box-shadow',
+          ]),
+          '&:hover': !disabled && !focused && {
+            borderColor: theme.palette.text.primary,
+          },
+        }}
+        onClick={() => {
+          if (!disabled) {
+            editor.focus();
+          }
+        }}
+      >
+        <Box
+          sx={{
+            padding: getPadding(),
+            minHeight: size === 'small' ? '1.4375em' : '1.4375em',
+            fontFamily: theme.typography.body1.fontFamily,
+            fontSize: theme.typography.body1.fontSize,
+            lineHeight: theme.typography.body1.lineHeight,
+            color: disabled 
+              ? theme.palette.text.disabled 
+              : theme.palette.text.primary,
+          }}
+        >
+          <Slate
+            editor={editor}
+            initialValue={currentValue}
+            onValueChange={handleChange}
+          >
+            <Editable
+              placeholder={(focused || hasContent) ? placeholder : ''}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              readOnly={disabled}
+              style={{
+                outline: 'none',
+                border: 'none',
+                background: 'transparent',
+                width: '100%',
+                minHeight: '20px',
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+                lineHeight: 'inherit',
+                color: 'inherit',
+                resize: 'none',
+              }}
+              {...props}
+            />
+          </Slate>
+        </Box>
+      </Box>
+
+      {helperText && (
+        <FormHelperText>
+          {helperText}
+        </FormHelperText>
+      )}
+    </FormControl>
+  );
+};
+
+// Demo Component with MUI Theme
+const SlateEditorDemo = () => {
+  const [value1, setValue1] = useState([
+    {
+      type: 'paragraph',
+      children: [{ text: 'This is a pre-filled editor with some content.' }],
+    },
+  ]);
+
+  const [value2, setValue2] = useState([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    },
+  ]);
+
+  const [value3, setValue3] = useState([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    },
+  ]);
+
+  const [value4, setValue4] = useState([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    },
+  ]);
+
+  return (
+    <Box sx={{ 
+      padding: 3, 
+      maxWidth: 600, 
+      margin: '0 auto',
+      backgroundColor: '#fafafa',
+      minHeight: '100vh',
+    }}>
+      <Box sx={{ 
+        typography: 'h4', 
+        mb: 3,
+        color: 'text.primary'
+      }}>
+        MUI-styled Slate Editor Demo
+      </Box>
+      
+      <MUISlateEditor
+        label="Rich Text Content"
+        helperText="This editor has pre-filled content and will show the floating label"
+        value={value1}
+        onChange={setValue1}
+        margin="normal"
+      />
+
+      <MUISlateEditor
+        label="Description"
+        helperText="Enter a detailed description of your content"
+        placeholder="Start typing your description..."
+        value={value2}
+        onChange={setValue2}
+        required
+        margin="normal"
+      />
+
+      <MUISlateEditor
+        label="Error Example"
+        helperText="This field has an error and shows error styling"
+        error={true}
+        value={value3}
+        onChange={setValue3}
+        margin="normal"
+      />
+
+      <MUISlateEditor
+        label="Disabled Editor"
+        helperText="This editor is disabled and cannot be edited"
+        disabled={true}
+        margin="normal"
+      />
+
+      <MUISlateEditor
+        label="Small Size Editor"
+        helperText="This is a small sized editor"
+        size="small"
+        value={value4}
+        onChange={setValue4}
+        margin="normal"
+      />
+    </Box>
+  );
+};
+
+export default SlateEditorDemo;
